@@ -5,8 +5,8 @@ import { Search } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const user = ref(null)
+const searchKeyword = ref('') // 搜索关键词
 
-// 页面加载时读取本地存储的用户信息
 onMounted(() => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
@@ -14,13 +14,17 @@ onMounted(() => {
   }
 })
 
-// 注销逻辑
 const handleLogout = () => {
   localStorage.removeItem('user')
   user.value = null
   router.push('/login')
-  // 稍微延迟一下刷新页面，确保状态清空
   setTimeout(() => location.reload(), 100)
+}
+
+// ★ 执行搜索跳转
+const doSearch = () => {
+  const query = searchKeyword.value.trim() ? { q: searchKeyword.value.trim() } : {}
+  router.push({ path: '/search', query: query })
 }
 </script>
 
@@ -64,8 +68,15 @@ const handleLogout = () => {
 
         <div class="header-actions">
           <div class="search-box">
-            <input type="text" placeholder="搜索" />
-            <button class="search-btn"><el-icon><Search /></el-icon></button>
+            <input
+                type="text"
+                placeholder="搜索"
+                v-model="searchKeyword"
+                @keyup.enter="doSearch"
+            />
+            <button class="search-btn" @click="doSearch">
+              <el-icon><Search /></el-icon>
+            </button>
           </div>
         </div>
       </div>
@@ -87,14 +98,13 @@ const handleLogout = () => {
 </template>
 
 <style>
-/* 引入官方字体感 */
 @import url('https://fonts.googleapis.com/css2?family=Motiva+Sans:wght@300;400;700&display=swap');
 
 :root {
   --steam-bg-dark: #171a21;
   --steam-bg-main: #1b2838;
   --steam-text-color: #c6d4df;
-  --steam-accent: #66c0f4; /* Steam 蓝 */
+  --steam-accent: #66c0f4;
 }
 
 body {
@@ -111,7 +121,6 @@ body {
   flex-direction: column;
 }
 
-/* 顶部 Global 小条 */
 .global-header {
   background: #171a21;
   height: 34px;
@@ -142,7 +151,6 @@ body {
   margin-right: 15px;
 }
 
-/* 主 Header */
 .steam-header {
   background: #171a21;
   height: 104px;
@@ -162,18 +170,16 @@ body {
   align-items: center;
 }
 
+.logo-wrapper { margin-right: 40px; cursor: pointer; }
 .steam-logo-img {
   width: 176px;
   height: 44px;
-  margin-right: 40px;
-  cursor: pointer;
   transition: filter 0.2s;
 }
 .steam-logo-img:hover {
   filter: brightness(1.2);
 }
 
-/* 导航链接 */
 .nav-links {
   display: flex;
   height: 100%;
@@ -195,20 +201,17 @@ body {
   color: var(--steam-accent);
 }
 
-/* 激活状态 (Vue Router 自动添加的类) */
 .router-link-active {
   color: #1a9fff;
   border-bottom: 3px solid #1a9fff;
-  padding-bottom: 7px; /* 调整下划线位置 */
+  padding-bottom: 7px;
 }
 
-/* 管理员链接特别样式 */
 .admin-link {
   color: #ff4c4c !important;
   text-shadow: 0 0 5px rgba(255, 76, 76, 0.3);
 }
 
-/* 搜索框 */
 .header-actions {
   margin-left: auto;
 }
@@ -219,10 +222,11 @@ body {
   display: flex;
   align-items: center;
   border: 1px solid rgba(0,0,0,0);
-  transition: border 0.3s;
+  transition: border 0.3s, background-color 0.3s;
 }
 .search-box:hover {
   border: 1px solid #66c0f4;
+  background-color: #417a9b;
 }
 .search-box input {
   background: transparent;
@@ -233,6 +237,7 @@ body {
   font-size: 14px;
   outline: none;
   width: 150px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
 }
 .search-box input::placeholder {
   color: #0e1c25;
@@ -247,13 +252,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #000;
+}
+.search-btn:hover {
+  background: #fff;
 }
 
 .main-content {
   flex: 1;
 }
 
-/* 页脚 */
 .steam-footer {
   background-color: #171a21;
   padding: 40px 0;
