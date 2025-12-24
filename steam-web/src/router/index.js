@@ -6,7 +6,7 @@ import GameDetailView from '../views/GameDetailView.vue'
 import DeveloperView from '../views/DeveloperView.vue'
 import CategoryView from '../views/CategoryView.vue'
 import SearchResultsView from '../views/SearchResultsView.vue'
-import CartView from '../views/CartView.vue' // ★ 引入购物车页面
+import CartView from '../views/CartView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,6 +52,7 @@ const router = createRouter({
             name: 'cart',
             component: CartView
         }
+
     ]
 })
 

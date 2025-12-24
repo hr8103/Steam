@@ -1,102 +1,82 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import request from '@/utils/request'
 import { useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 const router = useRouter()
-const gameList = ref([])      // 所有游戏
-const carouselList = ref([])  // 轮播图专用数据 (取前5个)
+const gameList = ref([])
+const loading = ref(true)
 
-// 获取数据
+// 获取所有游戏
 const fetchGames = async () => {
   try {
-    const data = await request.get('/api/game/list')
-    gameList.value = data
-    // 截取前 5 个作为轮播图展示
-    if (data.length > 0) {
-      carouselList.value = data.slice(0, 5)
-    }
-  } catch (error) {
-    console.error("获取游戏失败", error)
+    const res = await request.get('/api/game/list')
+    // 兼容处理：无论后端返回 {data:[]} 还是 [] 都能拿到
+    gameList.value = Array.isArray(res) ? res : (res.data || [])
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
   }
 }
 
-// 跳转详情页
 const goToDetail = (id) => {
   router.push(`/game/${id}`)
 }
 
-onMounted(() => {
-  fetchGames()
-})
+onMounted(fetchGames)
 </script>
 
 <template>
   <div class="home-container">
 
-    <div class="background-glow"></div>
+    <div class="hero-banner-gif">
+      <img src="/winter.GIF" alt="Winter Sale" class="gif-bg" />
+
+      <div class="gif-overlay-gradient"></div>
+    </div>
 
     <div class="content-width">
 
-      <div class="store-nav">
-        <span class="nav-btn">您的商店</span>
-        <span class="nav-btn">新鲜推荐</span>
-        <span class="nav-btn">类别</span>
-        <span class="nav-btn">点数商店</span>
-        <span class="nav-btn">新闻</span>
-        <span class="nav-btn">实验室</span>
+      <div class="store-capsule-bar">
+        <div class="capsule active">精选和推荐</div>
+        <div class="capsule">特别优惠</div>
+        <div class="capsule">按类别浏览</div>
+        <div class="capsule">点数商店</div>
       </div>
 
-      <h2 class="section-title">精选和推荐</h2>
+      <div class="section-title">浏览所有游戏</div>
 
-      <div class="carousel-wrapper" v-if="carouselList.length > 0">
-        <el-carousel :interval="4000" type="card" height="350px" indicator-position="outside">
-          <el-carousel-item v-for="item in carouselList" :key="item.id">
-            <div class="carousel-card" @click="goToDetail(item.id)">
-              <img :src="item.coverUrl" class="carousel-img" />
-              <div class="carousel-info">
-                <h3>{{ item.title }}</h3>
-                <div class="carousel-tags">
-                  <span class="tag">现已上架</span>
-                  <span class="tag" v-if="item.tags">{{ item.tags.split(',')[0] }}</span>
-                </div>
-                <div class="carousel-price">
-                  <span v-if="item.price > 0">$ {{ item.price }}</span>
-                  <span v-else>免费开玩</span>
-                </div>
-              </div>
-            </div>
-          </el-carousel-item>
-        </el-carousel>
-      </div>
-
-      <h2 class="section-title">特别优惠</h2>
-
-      <div v-if="gameList.length === 0" class="empty-tip">
-        正在加载数据，或请运行爬虫脚本填充数据库...
-      </div>
-
-      <div class="game-grid">
-        <div class="game-card" v-for="game in gameList" :key="game.id" @click="goToDetail(game.id)">
-          <div class="card-img-wrapper">
-            <img :src="game.coverUrl" class="card-img" />
+      <div class="game-grid" v-loading="loading" element-loading-background="rgba(0,0,0,0)">
+        <div
+            class="game-card"
+            v-for="game in gameList"
+            :key="game.id"
+            @click="goToDetail(game.id)"
+        >
+          <div class="card-img">
+            <img :src="game.coverUrl" loading="lazy" />
           </div>
 
           <div class="card-info">
-            <div class="game-title">{{ game.title }}</div>
-            <div class="game-dev">{{ game.developer }}</div>
+            <div class="title" :title="game.title">{{ game.title }}</div>
+            <div class="tags" v-if="game.tags">
+              {{ game.tags.split(',').slice(0, 2).join(', ') }}
+            </div>
 
             <div class="price-row">
-              <span class="discount" v-if="game.price > 0">-20%</span>
+              <div class="discount-badge">-20%</div>
               <div class="price-box">
-                <span class="old-price" v-if="game.price > 0">$ {{ (game.price * 1.2).toFixed(0) }}</span>
-                <span class="final-price">
-                    {{ game.price > 0 ? '$ ' + game.price : '免费' }}
-                </span>
+                <div class="original-price">¥ {{ (game.price * 1.25).toFixed(2) }}</div>
+                <div class="final-price">¥ {{ game.price }}</div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div v-if="!loading && gameList.length === 0" class="empty-list">
+        暂无上架游戏，请去后台添加数据。
       </div>
 
     </div>
@@ -104,184 +84,171 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 容器与背景 */
 .home-container {
-  position: relative;
+  background-color: #1b2838;
   min-height: 100vh;
-  padding-bottom: 50px;
+  color: #c7d5e0;
+  font-family: "Motiva Sans", Arial, sans-serif;
+  padding-bottom: 80px;
 }
-.background-glow {
+
+/* ★ 修改：GIF 背景区域样式 ★ */
+.hero-banner-gif {
+  position: relative;
+  width: 100%;
+  height: 450px; /* 您可以根据 GIF 的比例调整这个高度 */
+  overflow: hidden;
+  margin-bottom: 30px;
+  background-color: #000;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  border-bottom: 1px solid #66c0f4; /* 加一条蓝色底边，更像活动页 */
+}
+
+.gif-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 关键：让 GIF 铺满整个区域，裁剪多余部分 */
+  object-position: center center;
+  display: block;
+}
+
+/* 底部渐变遮罩 */
+.gif-overlay-gradient {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 600px;
-  background: radial-gradient(circle at center top, #1b2838 0%, #171a21 100%);
-  z-index: -1;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px; /* 渐变高度 */
+  /* 从透明过渡到网页背景色，实现无缝衔接 */
+  background: linear-gradient(to bottom, rgba(27,40,56,0) 0%, #1b2838 100%);
+  pointer-events: none;
 }
 
-.content-width {
-  width: 940px;
-  margin: 0 auto;
-}
+/* 下方内容样式保持不变 */
+.content-width { width: 940px; margin: 0 auto; position: relative; z-index: 2; }
 
-/* 导航条 */
-.store-nav {
+.store-capsule-bar {
   display: flex;
   gap: 10px;
-  background: rgba(62, 126, 167, 0.2);
-  padding: 5px;
-  margin-top: 20px;
   margin-bottom: 30px;
-  border-radius: 3px;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.2);
+  padding: 5px;
+  border-radius: 4px;
 }
-.nav-btn {
-  color: #e5e5e5;
-  font-size: 13px;
-  padding: 5px 10px;
-  cursor: pointer;
+.capsule {
+  padding: 8px 16px;
+  background: #212c42;
   border-radius: 2px;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
   transition: 0.2s;
 }
-.nav-btn:hover {
-  background: linear-gradient( to bottom, #e3eaef 5%, #c7d5e0 95%);
-  color: #333;
+.capsule:hover, .capsule.active {
+  background: linear-gradient(90deg, #06BFFF 0%, #2D73FF 100%);
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 .section-title {
+  font-size: 18px;
   color: #fff;
-  font-size: 14px;
-  margin-bottom: 10px;
-  letter-spacing: 1px;
   text-transform: uppercase;
-  margin-top: 40px;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
 }
 
-/* 轮播图样式 */
-.carousel-wrapper {
-  margin-bottom: 50px;
-}
-.carousel-card {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  border-radius: 4px;
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-}
-.carousel-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-.carousel-card:hover .carousel-img {
-  transform: scale(1.05);
-}
-.carousel-info {
-  position: absolute;
-  bottom: 0; left: 0; width: 100%;
-  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-  padding: 20px;
-  color: #fff;
-}
-.carousel-info h3 { margin: 0 0 5px 0; font-size: 20px; text-shadow: 0 2px 4px #000; }
-.carousel-tags .tag {
-  background: rgba(255,255,255,0.2);
-  padding: 2px 5px;
-  font-size: 11px;
-  margin-right: 5px;
-  border-radius: 2px;
-}
-.carousel-price {
-  font-size: 16px;
-  color: #66c0f4;
-  margin-top: 5px;
-  font-weight: bold;
-}
-
-/* 游戏网格列表 */
+/* 游戏卡片网格 */
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 一行3个 */
-  gap: 15px;
-}
-.empty-tip {
-  color: #8f98a0; text-align: center; padding: 40px;
+  grid-template-columns: repeat(3, 1fr); /* 3列布局 */
+  gap: 20px;
 }
 
+/* 单个卡片样式 (Steam 风格) */
 .game-card {
   background: #16202d;
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
   position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 .game-card:hover {
-  transform: scale(1.03);
-  background: #1f2c3d;
-  z-index: 10;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+  background: #2a475e; /* 悬停变亮蓝 */
 }
 
-.card-img-wrapper {
+.card-img {
+  width: 100%;
   height: 160px;
   overflow: hidden;
-  position: relative;
 }
-.card-img {
+.card-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.2s;
+}
+.game-card:hover .card-img img {
+  opacity: 0.8;
 }
 
 .card-info {
-  padding: 10px;
+  padding: 12px 15px;
 }
-.game-title {
+
+.title {
+  font-size: 16px;
   color: #c7d5e0;
-  font-size: 14px;
-  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 5px;
 }
-.game-dev {
-  color: #556772;
+.game-card:hover .title { color: #fff; }
+
+.tags {
   font-size: 11px;
+  color: #556772;
+  margin-bottom: 10px;
 }
 
-/* 价格区域 */
+/* 价格行 */
 .price-row {
   display: flex;
   align-items: center;
-  margin-top: 10px;
+  justify-content: flex-end; /* 价格靠右 */
+  gap: 8px;
 }
-.discount {
+
+.discount-badge {
   background: #4c6b22;
   color: #a4d007;
-  padding: 1px 4px;
-  font-size: 12px;
-  margin-right: 5px;
+  padding: 2px 6px;
+  font-size: 14px;
+  font-weight: bold;
 }
+
 .price-box {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-left: auto;
+  text-align: right;
+  line-height: 1.2;
 }
-.old-price {
+.original-price {
   color: #738895;
   font-size: 11px;
   text-decoration: line-through;
 }
 .final-price {
-  color: #acdbf5;
-  font-size: 14px;
+  color: #fff;
+  font-size: 15px;
 }
 
-/* 调整 Element Carousel 样式 */
-:deep(.el-carousel__mask) {
-  background-color: #000;
-  opacity: 0.6;
+.empty-list {
+  text-align: center;
+  padding: 50px;
+  color: #8f98a0;
+  font-size: 16px;
 }
 </style>

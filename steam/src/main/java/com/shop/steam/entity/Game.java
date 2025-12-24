@@ -29,6 +29,5 @@ public class Game {
     private Integer metacriticScore;
     private String metacriticUrl;
     private String steamId;
-
     private Integer status;
 }
