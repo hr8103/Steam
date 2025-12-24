@@ -30,7 +30,7 @@ onMounted(fetchGames)
           <div class="img-box"><img :src="game.coverUrl"></div>
           <div class="info">
             <div class="title">{{ game.title }}</div>
-            <div class="price">¥ {{ game.price }}</div>
+            <div class="price">$ {{ game.price }}</div>
           </div>
         </div>
       </div>

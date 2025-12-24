@@ -111,7 +111,7 @@ onMounted(() => {
           </div>
           <div class="col-price">
             <div class="price-box">
-              ¥ {{ game.price }}
+              $ {{ game.price }}
             </div>
           </div>
         </div>

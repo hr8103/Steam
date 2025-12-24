@@ -54,7 +54,7 @@ watch(() => route.params.name, () => {
             <div class="card-info">
               <div class="game-title">{{ game.title }}</div>
               <div class="price-row">
-                <span class="final-price">¥ {{ game.price }}</span>
+                <span class="final-price">$ {{ game.price }}</span>
               </div>
             </div>
           </div>

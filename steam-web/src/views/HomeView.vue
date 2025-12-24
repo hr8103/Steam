@@ -61,7 +61,7 @@ onMounted(() => {
                   <span class="tag" v-if="item.tags">{{ item.tags.split(',')[0] }}</span>
                 </div>
                 <div class="carousel-price">
-                  <span v-if="item.price > 0">¥ {{ item.price }}</span>
+                  <span v-if="item.price > 0">$ {{ item.price }}</span>
                   <span v-else>免费开玩</span>
                 </div>
               </div>
@@ -89,9 +89,9 @@ onMounted(() => {
             <div class="price-row">
               <span class="discount" v-if="game.price > 0">-20%</span>
               <div class="price-box">
-                <span class="old-price" v-if="game.price > 0">¥ {{ (game.price * 1.2).toFixed(0) }}</span>
+                <span class="old-price" v-if="game.price > 0">$ {{ (game.price * 1.2).toFixed(0) }}</span>
                 <span class="final-price">
-                    {{ game.price > 0 ? '¥ ' + game.price : '免费' }}
+                    {{ game.price > 0 ? '$ ' + game.price : '免费' }}
                 </span>
               </div>
             </div>
