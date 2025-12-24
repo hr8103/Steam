@@ -1,13 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
-// 引入所有页面组件
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
-import AdminGameView from '../views/AdminGameView.vue'
 import GameDetailView from '../views/GameDetailView.vue'
-import DeveloperView from '../views/DeveloperView.vue'
-import CategoryView from '../views/CategoryView.vue'
-import SearchResultsView from '../views/SearchResultsView.vue' // 新增搜索页
+import AdminGameView from '../views/AdminGameView.vue' // 原来的 PublishView 改名
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -25,28 +20,13 @@ const router = createRouter({
         {
             path: '/admin',
             name: 'admin',
-            component: AdminGameView
+            component: AdminGameView,
+            // 以后这里可以加路由守卫，防止普通人直接输入网址进入
         },
         {
-            path: '/game/:id',
+            path: '/game/:id', // :id 是动态参数
             name: 'game-detail',
             component: GameDetailView
-        },
-        {
-            path: '/developer/:name',
-            name: 'developer',
-            component: DeveloperView
-        },
-        {
-            path: '/category/:name',
-            name: 'category',
-            component: CategoryView
-        },
-        // ★ 新增：搜索结果页路由
-        {
-            path: '/search',
-            name: 'search',
-            component: SearchResultsView
         }
     ]
 })

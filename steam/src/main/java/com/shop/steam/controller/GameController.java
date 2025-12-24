@@ -1,102 +1,91 @@
 package com.shop.steam.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.shop.steam.common.Result;
+import com.shop.steam.common.Result; // 记得导入之前写的 Result 类
 import com.shop.steam.entity.Game;
-import com.shop.steam.service.IGameService;
+import com.shop.steam.service.GameService;
+import io.swagger.v3.oas.annotations.Operation; // Swagger 注解
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
+@Tag(name = "游戏管理接口", description = "包含游戏的增删改查与图片上传") // Swagger 标题
 @RestController
 @RequestMapping("/api/game")
-@CrossOrigin // 允许跨域
+@CrossOrigin // 允许跨域，为后面 Vue 前端做准备
 public class GameController {
 
     @Autowired
-    private IGameService gameService;
+    private GameService gameService;
 
-    // 1. 获取所有游戏 (首页默认列表)
-    @GetMapping("/list")
-    public List<Game> list() {
-        QueryWrapper<Game> queryWrapper = new QueryWrapper<>();
-        // 只查上架的游戏
-        queryWrapper.eq("status", 1);
-        // 按ID倒序（新发布的在前面）
-        queryWrapper.orderByDesc("id");
-        return gameService.list(queryWrapper);
-    }
-
-    // 2. 根据ID获取详情
-    @GetMapping("/detail/{id}")
-    public Result<Game> getById(@PathVariable Long id) {
-        Game game = gameService.getById(id);
-        if (game == null) {
-            return Result.error("游戏不存在");
+    // 1. 图片上传接口 (附录3功能点实现)
+    @Operation(summary = "上传游戏封面")
+    @PostMapping("/upload")
+    public Result<String> upload(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return Result.error("上传文件不能为空");
         }
-        return Result.success(game);
-    }
+        // 生成唯一文件名，防止覆盖 (使用UUID)
+        String originalFilename = file.getOriginalFilename();
+        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String newFileName = UUID.randomUUID().toString() + suffix;
 
-    // ★★★ 3. 搜索与排序接口 (完全按你的要求实现) ★★★
-    @GetMapping("/search")
-    public Result<List<Game>> search(
-            @RequestParam(required = false) String q,    // 搜索关键词
-            @RequestParam(required = false, defaultValue = "relevance") String sort // 排序方式
-    ) {
-        QueryWrapper<Game> query = new QueryWrapper<>();
+        // 保存路径：项目根目录/uploads/
+        String projectPath = System.getProperty("user.dir");
+        File saveFile = new File(projectPath + "/uploads/" + newFileName);
 
-        // 【关键】必须先限制只查询上架状态(status=1)的游戏
-        query.eq("status", 1);
-
-        // A. 处理关键词搜索
-        // 逻辑：如果 q 不为空，则查询 (标题 包含 q OR 描述 包含 q OR 开发商 包含 q)
-        if (StringUtils.isNotBlank(q)) {
-            query.and(wrapper -> wrapper
-                    .like("title", q)
-                    .or().like("short_description", q)
-                    .or().like("developer", q)
-            );
+        // 如果目录不存在，创建它
+        if (!saveFile.getParentFile().exists()) {
+            saveFile.getParentFile().mkdirs();
         }
 
-        // B. 处理排序逻辑 (严格对应前端 SearchResultsView.vue 的选项)
-        switch (sort) {
-            case "released_desc": // 发行日期从新到旧
-                query.orderByDesc("release_date");
-                break;
-            case "price_asc":     // 价格从低到高
-                query.orderByAsc("price");
-                break;
-            case "price_desc":    // 价格从高到低
-                query.orderByDesc("price");
-                break;
-            case "relevance":     // 相关性 (默认)
-            default:
-                query.orderByDesc("id");
-                break;
+        try {
+            file.transferTo(saveFile); // 保存文件
+            // 返回可访问的 URL 地址
+            String fileUrl = "http://localhost:8080/images/" + newFileName;
+            return Result.success(fileUrl);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Result.error("文件上传失败");
         }
-
-        List<Game> list = gameService.list(query);
-        return Result.success(list);
     }
 
-    // 4. 发布新游戏
+    // 2. 新增游戏接口
+    @Operation(summary = "发布新游戏")
     @PostMapping("/add")
     public Result<String> addGame(@RequestBody Game game) {
-        game.setStatus(1);
+        // 调用 Service 层保存
         boolean success = gameService.save(game);
-        return success ? Result.success("发布成功") : Result.error("发布失败");
+        if (success) {
+            return Result.success("游戏发布成功");
+        } else {
+            return Result.error("发布失败");
+        }
     }
 
-    // 5. 更新游戏信息
+    // 3. 获取所有游戏列表
+    @Operation(summary = "获取所有游戏")
+    @GetMapping("/list")
+    public Result<List<Game>> list() {
+        return Result.success(gameService.list());
+    }
+
+    // 4. 修改游戏信息 (编辑功能)
+    @Operation(summary = "更新游戏信息")
     @PostMapping("/update")
     public Result<String> updateGame(@RequestBody Game game) {
+        // MyBatis-Plus 的 updateById 会根据传入对象的 id 自动更新对应字段
         boolean success = gameService.updateById(game);
         return success ? Result.success("更新成功") : Result.error("更新失败");
     }
 
-    // 6. 删除游戏
+    // 5. 删除游戏 (下架功能)
+    @Operation(summary = "删除游戏")
     @DeleteMapping("/delete/{id}")
     public Result<String> deleteGame(@PathVariable Long id) {
         boolean success = gameService.removeById(id);
